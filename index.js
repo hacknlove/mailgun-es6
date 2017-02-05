@@ -2,6 +2,8 @@
 var https = require('https');
 var crypto = require('crypto');
 var queryString = require('querystring');
+var url = require('url');
+var path = require('path');
 var FormData = require('./lib/formdata.js');
 
 /**
@@ -59,9 +61,9 @@ class MailGun {
   * @return {Object} Contains the HTTPS options to pass to https.request()
   * @private
   */
-  _genHttpsOptions(path, method, publicApi) {
+  _genHttpsOptions(path, method, publicApi, apiDomain) {
     return {
-      hostname: 'api.mailgun.net',
+      hostname: apiDomain || 'api.mailgun.net',
       port: 443,
       path: `/v3${path}`,
       method: `${method}`,
@@ -158,7 +160,7 @@ class MailGun {
     }
 
     //Create HTTPS options
-    var httpsOptions = this._genHttpsOptions(path, method, options.publicApi);
+    var httpsOptions = this._genHttpsOptions(path, method, options.publicApi, options.apiDomain);
 
     //Check to see if this is a request that needs a form.
     if (options.hasOwnProperty('formData') === true) {
@@ -232,24 +234,28 @@ class MailGun {
 
   /**
   * Gets either a list of messages or a single message from server storage. If
-  * no msgId is supplied, this function internally calls getEvents.
+  * no msgUrl is supplied, this function internally calls getEvents.
   * @method getStoredMessages
-  * @param {String} [msgId] The ID of the single message you want to retrieve
+  * @param {String} [msgUrl] The URL of the single message you want to retrieve
   * @param {String} [domain] An alternative domain to fetch messages from
   * @return {Promise} The promise with the request results.
   */
-  getStoredMessages(msgId, domain) {
-    if (/^[a-zA-Z0-9\-]+\.\w+/.test(msgId) === true) {
-      //I hope that msgId's don't have periods in them...
-      domain = msgId;
-      msgId = undefined;
+  getStoredMessages(msgUrl, domain) {
+    var msgKey = '';
+    if (/^[a-zA-Z0-9\-]+\.\w+/.test(msgUrl) === true) {
+      // I hope that msgId's don't have periods in them...
+      domain = msgUrl;
+      msgUrl = undefined;
     }
 
-    if (typeof msgId == 'undefined') {
+    if (typeof msgUrl == 'undefined') {
       return this.getEvents({event: 'stored'}, domain);
     } else {
-      return this._sendRequest('/domains/<>/messages/' + msgId, 'GET', {
-        domain: domain
+      msgUrl = url.parse(msgUrl,true,true);
+      msgKey = path.basename(msgUrl.pathname);
+      return this._sendRequest('/domains/<>/messages/' + msgKey, 'GET', {
+        domain: domain,
+        apiDomain: msgUrl.hostname
       });
     }
   }
