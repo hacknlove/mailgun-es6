@@ -1093,6 +1093,33 @@ class MailGun {
   /**
   * Returns all the members of a single mailing list or information about
   * a single member on the list
+  * @method getMailListsPages
+  * @param {String} listAddress The address of the mailing list to see information
+  * @param {Int} pageSize Number of addresses per cycle, default and max are 100.
+  * @return {Promise} The promise with the request results.
+  */
+  getMailListsPages(listAddress, nextPage = '', pageSize = 100 ) {
+    let addresses = [];
+    // Just in case, set a sane minimum
+    if ( pageSize < 0 ) { pageSize = 1 }
+    if (typeof listAddress == 'undefined') {
+      throw new Error('This function needs at least a listAddress to look up');
+    }
+    // If nextPage is set, it will have the limit value bundled in.
+    if ( nextPage ) {
+      return this._sendRequest('/lists/' + listAddress + '/members/pages', 'GET', {
+        queryData: nextPage
+      });
+    } else {
+      return this._sendRequest('/lists/' + listAddress + '/members/pages', 'GET', {
+          limit: pageSize
+      });
+    }
+  }
+
+  /**
+  * Returns all the members of a single mailing list or information about
+  * a single member on the list
   * @method getMailListsMembers
   * @param {String} listAddress The address of the mailing list to see information
   * @param {String} memberAddress The address of a single member to view
