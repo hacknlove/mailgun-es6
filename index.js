@@ -1158,7 +1158,9 @@ class MailGun {
       // preventing you from simply passing in and end value.
       if ( ( success.hasOwnProperty('items') ) && ( success.items.length <= 0 ) ) {
         // We've collected all the address objects. - LDB
-        return( { items: addresses, total_count: addresses.length } )
+        success.items = addresses;
+        success.total_count = addresses.length;
+        return( success )
       } else {
         // Get the next page. - LDB
         return this.getMailListsPages( listAddress, nextPageGetVariables, pageSize, addresses.concat( success.items ) );
