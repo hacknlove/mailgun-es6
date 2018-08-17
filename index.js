@@ -1091,47 +1091,79 @@ class MailGun {
   }
 
   /**
-  * Returns a single page of users for a single mailing list
+  * Returns all the members of a single mailing list.
   * @method getMailListsPages
   * @param {!String} listAddress The address of the mailing list to see information
-  * @param {?String} [nextPage=''] The full GET paramemter set from a prior call to this method's results object paging.next string
+  * @param {?String} [nextPageGetVariables=''] The full GET paramemter set from a prior call to this method's results object paging.next string
   * @param {?Number} [pageSize=100] Number of addresses per cycle, default and max are 100.
+  * @param {?Array}  addresses array of resulting userObjects. Should be initially empty OR undefined. This method is recursive.
   * @return {?Promise} The promise with the request results.
   */
-  getMailListsPages(listAddress, nextPage, pageSize) {
-    let addresses = [];
-    // Travis-CL reminded me that earlier versions couldn't handle function variable defaults
-    // Let's account for that here.
 
-    // This is the GET attributes portion of a members/pages GET query
+  getMailListsPages(listAddress, nextPageGetVariables, pageSize, addresses ) {
+
+    // Travis-CL reminded me that earlier versions couldn't handle function variable defaults
+    // Let's account for that here. - LDB
+
+    // This is the GET attributes portion of a members/pages GET query - LDB
     // https://documentation.mailgun.com/en/latest/api-mailinglists.html#mailing-lists
     // It will look like:
     //     page=next&address=lastuser%40previouspage.com.org&limit=100
     // if the full GET was:
     //         https://api.mailgun.net/v3/lists/LIST@YOUR_DOMAIN_NAME/members/pages?page=next&address=lastuser%40previouspage.com.org&limit=100
-    if ( typeof nextPage == 'undefined') {
-      nextPage = '';
+    if ( typeof nextPageGetVariables == 'undefined') {
+      nextPageGetVariables = '';
     }
-
-    // This is the number of results to return. It defaults to 100. Its max value is 100.
+    // This is the number of results to return. It defaults to 100. Max value is 100. - LDB
     if ( typeof pageSize == 'undefined') {
       pageSize = 100;
     }
-    // Just in case, set a sane minimum
+    // Make sure we have our results array defined, if not, initialize it. - LDB
+    if ( typeof addresses == 'undefined') {
+      addresses = [];
+    }
+
+    // If nextPageGetVariables is '', the list of addresses should be empty. Clear it out of if it isn't. - LDB
+    if ( ( nextPageGetVariables === '' ) && ( addresses.length > 0 ) ) {
+      addresses = addresses.splice( 0, addresses.length );
+    }
+    // Just in case, set a sane minimum - LDB
     if ( pageSize < 0 ) { pageSize = 1; }
+
     if (typeof listAddress == 'undefined') {
-      throw new Error('This function needs at least a listAddress to look up');
+      throw new Error('This function needs at least a mailing list to look up');
     }
-    // If nextPage has a value , it will have the limit value bundled in.
-    if ( nextPage ) {
-      return this._sendRequest('/lists/' + listAddress + '/members/pages', 'GET', {
-        queryData: nextPage
-      });
-    } else {
-      return this._sendRequest('/lists/' + listAddress + '/members/pages', 'GET', {
-          limit: pageSize
-      });
-    }
+
+    // If nextPageGetVariables has a value , it will have the limit value already provided. - LDB
+
+    const requestVariableOptions = nextPageGetVariables ? { queryData: nextPageGetVariables } : { limit: pageSize };
+
+    return this._sendRequest( '/lists/' + listAddress + '/members/pages', 'GET', requestVariableOptions ).then( ( success, error ) => {
+
+      // If we errored, return now and pass the error upstream. - LDB
+      if( typeof error != 'undefined' ) {
+        return( error );
+      }
+
+      // Sanity checks -> these should always be good, but... - LDB
+      if ( ( success.hasOwnProperty( 'paging' ) && ( success.paging.hasOwnProperty('next') ) ) ) {
+        // This is a little trusting, but should always work if we make it this far and they don't change the URL format... - LDB
+        nextPageGetVariables = success.paging.next.split('/')[7].split('?')[1];
+      }
+
+      // Check and see if we're done. - LDB
+      // Due to the way the Mailgun API works for this feature, this is the most reliable way to detect the end of the list.
+      // paging.next always has a value even when at the end of the list ( it provides the url JUST called )
+      // You cannot trust the size of teh mailing list as reported by the mailing list query for lists with more than 10K users,
+      // preventing you from simply passing in and end value.
+      if ( ( success.hasOwnProperty('items') ) && ( success.items.length <= 0 ) ) {
+        // We've collected all the address objects. - LDB
+        return( { items: addresses, total_count: addresses.length } )
+      } else {
+        // Get the next page. - LDB
+        return this.getMailListsPages( listAddress, nextPageGetVariables, pageSize, addresses.concat( success.items ) );
+      }
+    } );
   }
 
   /**
@@ -1151,9 +1183,8 @@ class MailGun {
     if (/@/.test(memberAddress) === true) {
       return this._sendRequest('/lists/' + listAddress + '/members/' + memberAddress, 'GET');
     } else {
-      return this._sendRequest('/lists/' + listAddress + '/members', 'GET', {
-        queryData: memberAddress
-      });
+      // If we don't want a specific user, we really want ALL of them. - LDB
+      return this.getMailListsPages( listAddress, '', 100, [] )
     }
   }
 
