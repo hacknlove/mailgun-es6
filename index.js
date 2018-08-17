@@ -1091,21 +1091,38 @@ class MailGun {
   }
 
   /**
-  * Returns all the members of a single mailing list or information about
-  * a single member on the list
+  * Returns a single page of users for a single mailing list
   * @method getMailListsPages
-  * @param {String} listAddress The address of the mailing list to see information
-  * @param {Int} pageSize Number of addresses per cycle, default and max are 100.
-  * @return {Promise} The promise with the request results.
+  * @param {!String} listAddress The address of the mailing list to see information
+  * @param {?String} [nextPage=''] The full GET paramemter set from a prior call to this method's results object paging.next string
+  * @param {?Number} [pageSize=100] Number of addresses per cycle, default and max are 100.
+  * @return {?Promise} The promise with the request results.
   */
-  getMailListsPages(listAddress, nextPage = '', pageSize = 100 ) {
+  getMailListsPages(listAddress, nextPage, pageSize) {
     let addresses = [];
+    // Travis-CL reminded me that earlier versions couldn't handle function variable defaults
+    // Let's account for that here.
+
+    // This is the GET attributes portion of a members/pages GET query
+    // https://documentation.mailgun.com/en/latest/api-mailinglists.html#mailing-lists
+    // It will look like:
+    //     page=next&address=lastuser%40previouspage.com.org&limit=100
+    // if the full GET was:
+    //         https://api.mailgun.net/v3/lists/LIST@YOUR_DOMAIN_NAME/members/pages?page=next&address=lastuser%40previouspage.com.org&limit=100
+    if ( typeof nextPage == 'undefined') {
+      nextPage = '';
+    }
+
+    // This is the number of results to return. It defaults to 100. Its max value is 100.
+    if ( typeof pageSize == 'undefined') {
+      pageSize = 100;
+    }
     // Just in case, set a sane minimum
-    if ( pageSize < 0 ) { pageSize = 1 }
+    if ( pageSize < 0 ) { pageSize = 1; }
     if (typeof listAddress == 'undefined') {
       throw new Error('This function needs at least a listAddress to look up');
     }
-    // If nextPage is set, it will have the limit value bundled in.
+    // If nextPage has a value , it will have the limit value bundled in.
     if ( nextPage ) {
       return this._sendRequest('/lists/' + listAddress + '/members/pages', 'GET', {
         queryData: nextPage
