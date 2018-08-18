@@ -1922,15 +1922,21 @@ describe('Mailgun', function() {
         var listAddress = 'list@kylebaldw.in';
 
         mgServer.get('/' + mgVersion +
-        '/lists/' + listAddress + '/members')
-        .reply(200, {message: 'OK'});
+        '/lists/' + listAddress + '/members/pages')
+        .reply(200, {"items":[{"address":"celes@kylebaldw.in","name":"","subscribed":true,"vars":{}}],"paging":{"first":"https://api.mailgun.net/v3/lists/list@kylebaldw.in/members/pages?page=first&limit=100","last":"https://api.mailgun.net/v3/lists/list@kylebaldw.in/members/pages?page=last&limit=100","next":"https://api.mailgun.net/v3/lists/list@kylebaldw.in/members/pages?page=next&address=celes@kylebaldw.in&limit=100&limit=100","previous":"https://api.mailgun.net/v3/lists/list@kylebaldw.in/members/pages?page=prev&address=celes@kylebaldw.in&limit=100"}});
+
+        mgServer
+        .get('/' + mgVersion +
+        '/lists/' + listAddress + '/members/pages' + '?page=next&address=celes@kylebaldw.in&limit=100&limit=100')
+        .reply(200, {"items":[],"paging":{"first":"https://api.mailgun.net/v3/lists/list@kylebaldw.in/members/pages?page=first&limit=100","last":"https://api.mailgun.net/v3/lists/list@kylebaldw.in/members/pages?page=last&limit=100","next":"https://api.mailgun.net/v3/lists/list@kylebaldw.in/members/pages?page=next&address=celes@kylebaldw.in&limit=100&limit=100","previous":"https://api.mailgun.net/v3/lists/list@kylebaldw.in/members/pages?page=prev&address=celes@kylebaldw.in&limit=100"}});
 
         return mg.getMailListsMembers(listAddress).then(function(res) {
-          res.message.should.equal('OK');
-        }, function() {
-          throw new Error('This should have resolved the promise');
+          JSON.stringify(res).should.equal('{"items":[{"address":"celes@kylebaldw.in","name":"","subscribed":true,"vars":{}}],"total_count":1}');
+        }, function(err) {
+          throw new Error('This should have resolved the promise '+  JSON.stringify( err ));
         });
       });
+
       it('should get a single member record if memberAddress is given', function() {
         var listAddress = 'list@kylebaldw.in';
         var memberAddress = 'celes@kylebaldw.in';

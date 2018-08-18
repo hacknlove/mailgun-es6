@@ -1138,12 +1138,7 @@ class MailGun {
 
     const requestVariableOptions = nextPageGetVariables ? { queryData: nextPageGetVariables } : { limit: pageSize };
 
-    return this._sendRequest( '/lists/' + listAddress + '/members/pages', 'GET', requestVariableOptions ).then( ( success, error ) => {
-
-      // If we errored, return now and pass the error upstream. - LDB
-      if( typeof error != 'undefined' ) {
-        return( error );
-      }
+    return this._sendRequest( '/lists/' + listAddress + '/members/pages', 'GET', requestVariableOptions ).then( ( success ) => {
 
       // Sanity checks -> these should always be good, but... - LDB
       if ( ( success.hasOwnProperty( 'paging' ) && ( success.paging.hasOwnProperty('next') ) ) ) {
@@ -1158,9 +1153,7 @@ class MailGun {
       // preventing you from simply passing in and end value.
       if ( ( success.hasOwnProperty('items') ) && ( success.items.length <= 0 ) ) {
         // We've collected all the address objects. - LDB
-        success.items = addresses;
-        success.total_count = addresses.length;
-        return( success )
+        return( { items: addresses, total_count: addresses.length } )
       } else {
         // Get the next page. - LDB
         return this.getMailListsPages( listAddress, nextPageGetVariables, pageSize, addresses.concat( success.items ) );
@@ -1186,7 +1179,7 @@ class MailGun {
       return this._sendRequest('/lists/' + listAddress + '/members/' + memberAddress, 'GET');
     } else {
       // If we don't want a specific user, we really want ALL of them. - LDB
-      return this.getMailListsPages( listAddress, '', 100, [] )
+      return this.getMailListsPages( listAddress )
     }
   }
 
