@@ -1111,6 +1111,9 @@ class MailGun {
     //     page=next&address=lastuser%40previouspage.com.org&limit=100
     // if the full GET was:
     //         https://api.mailgun.net/v3/lists/LIST@YOUR_DOMAIN_NAME/members/pages?page=next&address=lastuser%40previouspage.com.org&limit=100
+
+    let singleRun = false;
+
     if ( typeof nextPageGetVariables == 'undefined') {
       nextPageGetVariables = '';
     }
@@ -1121,6 +1124,7 @@ class MailGun {
     // Make sure we have our results array defined, if not, initialize it. - LDB
     if ( typeof addresses == 'undefined') {
       addresses = [];
+      singleRun = true;
     }
 
     // If nextPageGetVariables is '', the list of addresses should be empty. Clear it out of if it isn't. - LDB
@@ -1151,12 +1155,14 @@ class MailGun {
       // paging.next always has a value even when at the end of the list ( it provides the url JUST called )
       // You cannot trust the size of teh mailing list as reported by the mailing list query for lists with more than 10K users,
       // preventing you from simply passing in and end value.
-      if ( ( success.hasOwnProperty('items') ) && ( success.items.length <= 0 ) ) {
+      // Concat the address list so we don't need another logic branch.
+      addresses = addresses.concat( success.items );
+      if ( ( singleRun ) || ( ( success.hasOwnProperty('items') ) && ( success.items.length <= 0 ) ) ) {
         // We've collected all the address objects. - LDB
-        return( { items: addresses, total_count: addresses.length } )
+        return( { items: addresses, total_count: addresses.length, paging: singleRun ? success.paging : {} } )
       } else {
         // Get the next page. - LDB
-        return this.getMailListsPages( listAddress, nextPageGetVariables, pageSize, addresses.concat( success.items ) );
+        return this.getMailListsPages( listAddress, nextPageGetVariables, pageSize, addresses );
       }
     } );
   }
@@ -1179,7 +1185,8 @@ class MailGun {
       return this._sendRequest('/lists/' + listAddress + '/members/' + memberAddress, 'GET');
     } else {
       // If we don't want a specific user, we really want ALL of them. - LDB
-      return this.getMailListsPages( listAddress )
+      // Call with default values for recursive loading.
+      return this.getMailListsPages( listAddress, '', 100, [] )
     }
   }
 

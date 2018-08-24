@@ -1931,7 +1931,7 @@ describe('Mailgun', function() {
         .reply(200, {"items":[],"paging":{"first":"https://api.mailgun.net/v3/lists/list@kylebaldw.in/members/pages?page=first&limit=100","last":"https://api.mailgun.net/v3/lists/list@kylebaldw.in/members/pages?page=last&limit=100","next":"https://api.mailgun.net/v3/lists/list@kylebaldw.in/members/pages?page=next&address=celes@kylebaldw.in&limit=100&limit=100","previous":"https://api.mailgun.net/v3/lists/list@kylebaldw.in/members/pages?page=prev&address=celes@kylebaldw.in&limit=100"}});
 
         return mg.getMailListsMembers(listAddress).then(function(res) {
-          JSON.stringify(res).should.equal('{"items":[{"address":"celes@kylebaldw.in","name":"","subscribed":true,"vars":{}}],"total_count":1}');
+          JSON.stringify(res).should.equal('{"items":[{"address":"celes@kylebaldw.in","name":"","subscribed":true,"vars":{}}],"total_count":1,"paging":{}}');
         }, function(err) {
           throw new Error('This should have resolved the promise '+  JSON.stringify( err ));
         });

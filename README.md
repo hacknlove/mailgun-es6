@@ -612,6 +612,19 @@ promise(MailGun_Response, Rejection_Message)
 
 This function allows you to dig deeper into your mail list subscribers.  If a member email address is given, information about that user will be sent back.  If not, all members of the mailing list will be returned.
 
+#### Get Mailing List Members by Page - [GET /lists\[address\]/members/pages](https://documentation.mailgun.com/api-mailinglists.html#mailing-lists)
+```js
+mailGun.getMailListsPages(listAddress[, nextPageGetVariables, pageSize ] );
+```
+#### Returns
+```js
+promise(MailGun_Response, Rejection_Message)
+```
+
+This function will return either a single page or all pages of mailing list members. If it is not desirable to handle the paging manually, use mailGun.getMailListsMembers.
+* nextPageGetVariables is the string representation of the GET parameters for the next page call.
+* pageSize ( default 100, max 100) is the number of address objects to get
+
 #### Add Mailing List Members- [POST /lists/\[address\]/members](https://documentation.mailgun.com/api-mailinglists.html#mailing-lists)
 ```js
 mailGun.addMailListsMembers(listAddress, memberObject[, upsert]);
@@ -621,7 +634,7 @@ mailGun.addMailListsMembers(listAddress, memberObject[, upsert]);
 promise(MailGun_Response, Rejection_Message)
 ```
 
-This function will create a new mailing list member. Member object can be an object or an array of objects.  These objects shoud include:
+This function will create a new mailing list member. Member object can be an object or an array of objects.  These objects should include:
 
 * address - The email to add.
 * name - The member name
