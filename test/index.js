@@ -1953,6 +1953,47 @@ describe('Mailgun', function() {
       });
     });
 
+    context('getMailListsPages (GET /lists/<address>/members/pages)', function() {
+      it('should throw an error if listAddress is missing', function() {
+        expect(function() {
+          return mg.getMailListsPages();
+        }).to.throw(Error);
+      });
+
+      it('should get one page of members if only listAddress is given', function() {
+        var listAddress = 'list@kylebaldw.in';
+
+        mgServer.get('/' + mgVersion +
+        '/lists/' + listAddress + '/members/pages')
+        .reply(200, {"items":[{"address":"celes@kylebaldw.in","name":"","subscribed":true,"vars":{}}],"paging":{"first":"https://api.mailgun.net/v3/lists/list@kylebaldw.in/members/pages?page=first&limit=100","last":"https://api.mailgun.net/v3/lists/list@kylebaldw.in/members/pages?page=last&limit=100","next":"https://api.mailgun.net/v3/lists/list@kylebaldw.in/members/pages?page=next&address=celes@kylebaldw.in&limit=100&limit=100","previous":"https://api.mailgun.net/v3/lists/list@kylebaldw.in/members/pages?page=prev&address=celes@kylebaldw.in&limit=100"}});
+
+        return mg.getMailListsPages(listAddress).then(function(res) {
+          JSON.stringify(res).should.equal('{"items":[{"address":"celes@kylebaldw.in","name":"","subscribed":true,"vars":{}}],"total_count":1,"paging":{"first":"https://api.mailgun.net/v3/lists/list@kylebaldw.in/members/pages?page=first&limit=100","last":"https://api.mailgun.net/v3/lists/list@kylebaldw.in/members/pages?page=last&limit=100","next":"https://api.mailgun.net/v3/lists/list@kylebaldw.in/members/pages?page=next&address=celes@kylebaldw.in&limit=100&limit=100","previous":"https://api.mailgun.net/v3/lists/list@kylebaldw.in/members/pages?page=prev&address=celes@kylebaldw.in&limit=100"}}');
+        }, function(err) {
+          throw new Error('This should have resolved the promise '+  JSON.stringify( err ));
+        });
+      });
+
+      it('should get all pages of members if an address array is provided.', function() {
+        var listAddress = 'list@kylebaldw.in';
+
+        mgServer.get('/' + mgVersion +
+        '/lists/' + listAddress + '/members/pages')
+        .reply(200, {"items":[{"address":"celes@kylebaldw.in","name":"","subscribed":true,"vars":{}}],"paging":{"first":"https://api.mailgun.net/v3/lists/list@kylebaldw.in/members/pages?page=first&limit=100","last":"https://api.mailgun.net/v3/lists/list@kylebaldw.in/members/pages?page=last&limit=100","next":"https://api.mailgun.net/v3/lists/list@kylebaldw.in/members/pages?page=next&address=celes@kylebaldw.in&limit=100&limit=100","previous":"https://api.mailgun.net/v3/lists/list@kylebaldw.in/members/pages?page=prev&address=celes@kylebaldw.in&limit=100"}});
+
+        mgServer
+        .get('/' + mgVersion +
+        '/lists/' + listAddress + '/members/pages' + '?page=next&address=celes@kylebaldw.in&limit=100&limit=100')
+        .reply(200, {"items":[],"paging":{}});
+
+        return mg.getMailListsPages(listAddress,'',100,[]).then(function(res) {
+          JSON.stringify(res).should.equal('{"items":[{"address":"celes@kylebaldw.in","name":"","subscribed":true,"vars":{}}],"total_count":1,"paging":{}}');
+        }, function(err) {
+          throw new Error('This should have resolved the promise '+  JSON.stringify( err ));
+        });
+      });
+    });
+
     context('addMailListsMembers (POST /lists/<address>/members.json)', function() {
       it('should throw an eror if listAddress is missing', function() {
         expect(function() {
