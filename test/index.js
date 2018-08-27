@@ -387,6 +387,22 @@ describe('Mailgun', function() {
           domainName: mgDomain
         });
       });
+
+      it('should gracefully handle an incorrect API key', function() {
+        var listAddress = 'list@kylebaldw.in';
+
+        mgServer.get('/' + mgVersion +
+        '/lists/' + listAddress + '/log')
+        .reply(401, "I am a generic error!");
+
+
+        return mg._sendRequest('/lists/' + listAddress + '/log', 'GET')
+          .then(function(res) {
+          }, function(error) {
+            error.should.equal("I am a generic error!");
+          });
+      });
+
       it('should throw an error if path is missing', function() {
         return expect(function() {
           mg._sendRequest();
@@ -1501,7 +1517,6 @@ describe('Mailgun', function() {
         return mg.addCampaigns({name: 'campName'}).then(function(res) {
           res.data.should.include('campName');
         }, function(res) {
-          console.log(res);
           throw new Error('This should have resolved the promise');
         });
       });
