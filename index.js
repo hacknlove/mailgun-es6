@@ -107,15 +107,20 @@ class MailGun {
       //If we have an array, add a value fo the same field
       if (Array.isArray(formData[key]) === true) {
         formData[key].map(function(cV) { // jshint ignore:line
-          //If there is an object with file type, we need to open a file
-          if (cV.hasOwnProperty('fType') === true) {
+          if (cV.hasOwnProperty('fBuffer')) {
+            // if there is an object with a buffer we attach it as a filed
+            form.addData(key, cV.fName, cV.fType, cV.fBuffer);
+          } else if (cV.hasOwnProperty('fType') === true) {
+            //If there is an object with file type, we need to open a file
             form.addData(key, cV.fLoc, cV.fType);
           } else {
             form.addData(key, cV);
           }
         });
       } else {
-        if (formData[key].hasOwnProperty('fType') === true) {
+        if (formData[key].hasOwnProperty('fBuffer') === true) {
+          form.addData(key, formData[key].fName, formData[key].fType, formData[key].fBuffer);
+        } else if (formData[key].hasOwnProperty('fType') === true) {
           form.addData(key, formData[key].fLoc, formData[key].fType);
         } else {
           form.addData(key, formData[key]);

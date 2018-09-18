@@ -344,6 +344,34 @@ describe('Mailgun', function() {
 
         tmpForm.submitTo(streamCatch);
       });
+      it('should add a file directly from a buffer', function(done) {
+        var result = '';
+        var tmpForm = mg._buildFormData({
+          fileTest: {
+            fType: 'image/png',
+            fName: 'cat1.png',
+            fBuffer: fs.readFileSync(__dirname + '/img/cat1.png')
+          }
+        });
+        var catBuffer = fs.readFileSync(__dirname + '/img/cat1.png');
+
+        var streamCatch = new stream.Writable();
+        streamCatch.setDefaultEncoding('utf8');
+        streamCatch.write = function(chunk) {
+          result = result + chunk.toString('utf8');
+        };
+        streamCatch.end = function() {
+          tmpForm.dataCount.should.equal(1);
+          result.should.include('image/png').and.include('cat1.png');
+          result.match(/fileTest/g).length.should.equal(1);
+          result.should.include(catBuffer);
+          var re = new RegExp(tmpForm._boundary, 'g');
+          result.match(re).length.should.equal(2);
+          done();
+        };
+
+        tmpForm.submitTo(streamCatch);
+      });
       it('should add multiple files of the same type with an array', function(done) {
         var result = '';
         var tmpForm = mg._buildFormData({
